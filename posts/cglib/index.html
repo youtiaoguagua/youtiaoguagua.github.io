@@ -1,0 +1,434 @@
+<!doctype html><html lang=zh-cn><meta charset=utf-8><meta name=viewport content="width=device-width"><title>jdk及cglib动态代理原理 | 油条瓜瓜的小站</title><meta name=generator content="Hugo Eureka 0.8.4"><link rel=stylesheet href=../../css/eureka.min.css><script defer src=../../js/eureka.min.js></script><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" as=style onload="this.onload=null,this.rel='stylesheet'"><link rel=stylesheet href=https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.0/build/styles/androidstudio.min.css media=print onload="this.media='all',this.onload=null" crossorigin><script defer src=https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.0/build/highlight.min.js crossorigin></script><script defer src=https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.0/build/languages/dart.min.js crossorigin></script><script defer src=https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.14.0/js/all.min.js integrity="sha256-uNYoXefWRqv+PsIF/OflNmwtKM4lStn9yrz2gVl6ymo=" crossorigin></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css integrity=sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X media=print onload="this.media='all',this.onload=null" crossorigin><script defer src=https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js integrity=sha384-g7c+Jr9ZivxKLnZTDUhnkOnsh30B4H0rpLUpJ4jAIKs4fnJI+sEnkvrMWph2EDg4 crossorigin></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js integrity=sha384-mll67QQFJfxn0IYznZYonOWZ644AWYC+Pt2cHqMaRhXVrursRwvLnLaebdGIlYNa crossorigin></script><script>document.addEventListener("DOMContentLoaded",function(){renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1},{left:"\\[",right:"\\]",display:!0}]})})</script><script defer src=https://cdn.jsdelivr.net/npm/mermaid@8.9.2/dist/mermaid.min.js integrity="sha256-Zmpaaj+GXFsPF5WdPArSrnW3b30dovldeKsW00xBVwE=" crossorigin></script><link rel=icon type=image/png sizes=32x32 href=../../images/favicon_hubeb304f16dc2c42f61779018833815d3_28144_32x32_fill_box_center_2.png><link rel=apple-touch-icon sizes=180x180 href=../../images/favicon_hubeb304f16dc2c42f61779018833815d3_28144_180x180_fill_box_center_2.png><meta name=description content="jdk及cglib动态代理原理"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"文章","item":"/posts/"},{"@type":"ListItem","position":2,"name":"jdk及cglib动态代理原理","item":"/posts/cglib/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","mainEntityOfPage":{"@type":"WebPage","@id":"/posts/cglib/"},"headline":"jdk及cglib动态代理原理 | 油条瓜瓜的小站","datePublished":"2021-12-30T00:00:00+00:00","dateModified":"2022-01-02T19:01:34+08:00","wordCount":4908,"author":{"@type":"Person","name":["youtiaoguagua"]},"publisher":{"@type":"Person","name":"youtiaoguagua","logo":{"@type":"ImageObject","url":"/images/favicon.png"}},"description":"jdk及cglib动态代理原理"}</script><meta property="og:title" content="jdk及cglib动态代理原理 | 油条瓜瓜的小站"><meta property="og:type" content="article"><meta property="og:image" content="/images/favicon.png"><meta property="og:url" content="/posts/cglib/"><meta property="og:description" content="jdk及cglib动态代理原理"><meta property="og:locale" content="zh-cn"><meta property="og:site_name" content="油条瓜瓜的小站"><meta property="article:published_time" content="2021-12-30T00:00:00+00:00"><meta property="article:modified_time" content="2022-01-02T19:01:34+08:00"><meta property="article:section" content="posts"><meta property="article:tag" content="cglib"><body class="flex flex-col min-h-screen"><header class="fixed flex items-center w-full min-h-16 pl-scrollbar z-50 bg-secondary-bg shadow-sm"><div class="w-full max-w-screen-xl mx-auto"><script>let storageColorScheme=localStorage.getItem("lightDarkMode");((storageColorScheme=='Auto'||storageColorScheme==null)&&window.matchMedia("(prefers-color-scheme: dark)").matches||storageColorScheme=="Dark")&&document.getElementsByTagName('html')[0].classList.add('dark')</script><nav class="flex items-center justify-between flex-wrap px-4 py-4 md:py-0"><a href=../../ class="mr-6 text-primary-text text-xl font-bold">油条瓜瓜的小站</a>
+<button id=navbar-btn class="md:hidden flex items-center px-3 py-2" aria-label="Open Navbar">
+<i class="fas fa-bars"></i></button><div id=target class="hidden block md:flex md:flex-grow md:justify-between md:items-center w-full md:w-auto text-primary-text z-20"><div class="md:flex md:h-16 text-sm md:flex-grow pb-4 md:pb-0 border-b md:border-b-0"><a href=../../authors/youtiaoguagua class="block mt-4 md:inline-block md:mt-0 md:h-(16-4px) md:leading-(16-4px) box-border md:border-t-2 md:border-b-2 border-transparent mr-4">关于我</a>
+<a href=../../posts/ class="block mt-4 md:inline-block md:mt-0 md:h-(16-4px) md:leading-(16-4px) box-border md:border-t-2 md:border-b-2 selected-menu-item mr-4">文章</a></div><div class=flex><div class="relative pt-4 md:pt-0"><div class="cursor-pointer hover:text-eureka" id=lightDarkMode><i class="fas fa-adjust"></i></div><div class="fixed hidden inset-0 opacity-0 h-full w-full cursor-default z-30" id=is-open></div><div class="absolute flex flex-col left-0 md:left-auto right-auto md:right-0 hidden bg-secondary-bg w-48 rounded py-2 border border-tertiary-bg cursor-pointer z-40" id=lightDarkOptions><span class="px-4 py-1 hover:text-eureka" name=Light>浅色</span>
+<span class="px-4 py-1 hover:text-eureka" name=Dark>深色</span>
+<span class="px-4 py-1 hover:text-eureka" name=Auto>自动</span></div></div></div></div><div class="fixed hidden inset-0 opacity-0 h-full w-full cursor-default z-0" id=is-open-mobile></div></nav><script>let element=document.getElementById('lightDarkMode');storageColorScheme==null||storageColorScheme=='Auto'?document.addEventListener('DOMContentLoaded',()=>{window.matchMedia("(prefers-color-scheme: dark)").addEventListener('change',switchDarkMode)}):storageColorScheme=="Light"?(element.firstElementChild.classList.remove('fa-adjust'),element.firstElementChild.setAttribute("data-icon",'sun'),element.firstElementChild.classList.add('fa-sun')):storageColorScheme=="Dark"&&(element.firstElementChild.classList.remove('fa-adjust'),element.firstElementChild.setAttribute("data-icon",'moon'),element.firstElementChild.classList.add('fa-moon')),document.addEventListener('DOMContentLoaded',()=>{getcolorscheme(),switchBurger()})</script></div></header><main class="flex-grow pt-16"><div class=pl-scrollbar><div class="w-full max-w-screen-xl lg:px-4 xl:px-8 mx-auto"><div class="grid grid-cols-2 lg:grid-cols-8 gap-4 lg:pt-12"><div class="col-span-2 lg:col-span-6 bg-secondary-bg rounded px-6 py-8"><h1 class="font-bold text-3xl text-primary-text">jdk及cglib动态代理原理</h1><div class="flex flex-wrap flex-row items-center mt-2 text-tertiary-text"><div class="mr-6 my-2"><i class="fas fa-calendar mr-1"></i>
+<span>2021-12-30</span></div><div class="mr-6 my-2"><i class="fas fa-clock mr-1"></i>
+<span>10分钟阅读时长</span></div><div class="mr-6 my-2"><i class="fas fa-folder mr-1"></i>
+<a href=../../categories/java/ class=hover:text-eureka>java</a></div></div><div class=content><h1 id=jdk及cglib动态代理原理>jdk及cglib动态代理原理</h1><h2 id=环境>环境</h2><p><img src=https://cdn.jsdelivr.net/gh/youtiaoguagua/blog-img/blog/cglib.png alt=依赖关系图></p><ul><li><p>日志框架logback，引入logback-classic即可引入日志实现层和api</p></li><li><p>测试框架junit,引入junit-jupiter即可，这是一个聚合pom</p></li><li><p>引入cglig库</p></li></ul><h2 id=原理分析>原理分析</h2><p>java动态代理有两种实现方式：</p><ul><li><p>JDK动态代理：利用反射机制生成一个实现代理接口的匿名类，在调用具体方法前调用InvokeHandler来处理。</p></li><li><p>CGLIB动态代理：利用asm，修改字节码生成子类来处理。</p></li></ul><h3 id=jdk动态代理>jdk动态代理</h3><h4 id=代理方法执行分析>代理方法执行分析</h4><blockquote><p>具体实现如下，使用jdk自带的<code>Proxy</code>实现<code>InvocationHandler</code>接口即可对代理对象进行增强</p></blockquote><pre><code class=language-java>HelloWorldImpl o = new HelloWorldImpl();
+HelloWorld helloWorld = (HelloWorld) Proxy.newProxyInstance(HelloWorld.class.getClassLoader(), 		HelloWorldImpl.class.getInterfaces(), (obj, method, args) -&gt; {
+    log.info(&quot;调用方法开始：{}&quot;, method.getName());
+    Object result = method.invoke(o, args);
+    log.info(&quot;调用结果:{}&quot;, result);
+    log.info(&quot;调用方法结束：{}&quot;, method.getName());
+    return result;
+});
+log.info(helloWorld.sayHello(&quot;hello world&quot;));
+</code></pre><blockquote><p>通过设置以下代码可以查看jdk动态生成的class文件</p></blockquote><pre><code class=language-java>//  设置java动态代理调试模式,在junit中设置此方法是无效的！
+System.getProperties().put(&quot;sun.misc.ProxyGenerator.saveGeneratedFiles&quot;, &quot;true&quot;);
+</code></pre><p>下面为生成的代理类</p><pre><code>├───com
+│   └───sun
+│       └───proxy
+│               $Proxy0.class   # 生成的代理类
+</code></pre><pre><code class=language-java>public final String sayHello(String var1) throws  {
+    try {
+        return (String)super.h.invoke(this, m3, new Object[]{var1});
+    } catch (RuntimeException | Error var3) {
+        throw var3;
+    } catch (Throwable var4) {
+        throw new UndeclaredThrowableException(var4);
+    }
+}
+</code></pre><p>上面为生成的的class文件反编译后的一个方法，很容易的看出，代理方法只是很简单的调用了<code>InvocationHandler</code>类中的<code>invoke</code>方法，在<code>invoke</code>方法中又会调用代理方法的<code>invoke</code>方法，这个<code>invoke</code>方法是反射方法，因此被代理的方法就被调用了，因此jdk动态代理是通过实现被代理类的接口，然后通过反射执行被代理方法实现的。</p><h4 id=生成代理类分析>生成代理类分析</h4><blockquote><p>下面咱们来看一下这个动态代理类是怎么生成的</p></blockquote><p>下面为<code>Proxy.newProxyInstance</code>的代码：</p><pre><code class=language-java>public static Object newProxyInstance(ClassLoader loader,
+                                      Class&lt;?&gt;[] interfaces,
+                                      InvocationHandler h)
+    throws IllegalArgumentException
+{
+    Objects.requireNonNull(h);
+
+    final Class&lt;?&gt;[] intfs = interfaces.clone();
+    final SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+        checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
+    }
+    /*
+     * Look up or generate the designated proxy class.
+    */
+    Class&lt;?&gt; cl = getProxyClass0(loader, intfs);
+    ....
+}
+</code></pre><p>很容易看出<code>getProxyClass0</code>就是生成代理类的方法。</p><pre><code class=language-java>    private static Class&lt;?&gt; getProxyClass0(ClassLoader loader,
+                                           Class&lt;?&gt;... interfaces) {
+        if (interfaces.length &gt; 65535) {
+            throw new IllegalArgumentException(&quot;interface limit exceeded&quot;);
+        }
+
+        // If the proxy class defined by the given loader implementing
+        // the given interfaces exists, this will simply return the cached copy;
+        // otherwise, it will create the proxy class via the ProxyClassFactory
+        return proxyClassCache.get(loader, interfaces);
+    }
+</code></pre><p>比较有意思的一点是当被代理类的接口数量大于65535时就会报错，我们都知道一个类可以实现多个接口，但是这个接口数量也是有限制的，挺有意思的😂！</p><p>代理类是被放在一个弱引用map里的，接下来就是从map中取出接口的代理类。</p><pre><code class=language-java>    private static final WeakCache&lt;ClassLoader, Class&lt;?&gt;[], Class&lt;?&gt;&gt;
+        proxyClassCache = new WeakCache&lt;&gt;(new KeyFactory(), new ProxyClassFactory());
+</code></pre><p>上面就是这个map构造方式，提供了key和value的构造工厂。</p><p>KeyFactory:</p><pre><code class=language-java>//很简单的通过实现类的数量生成了一个Key对象    
+private static final class KeyFactory
+        implements BiFunction&lt;ClassLoader, Class&lt;?&gt;[], Object&gt;
+    {
+        @Override
+        public Object apply(ClassLoader classLoader, Class&lt;?&gt;[] interfaces) {
+            switch (interfaces.length) {
+                case 1: return new Key1(interfaces[0]); // the most frequent
+                case 2: return new Key2(interfaces[0], interfaces[1]);
+                case 0: return key0;
+                default: return new KeyX(interfaces);
+            }
+        }
+    }
+</code></pre><p>ProxyClassFactory：</p><pre><code class=language-java> private static final class ProxyClassFactory
+        implements BiFunction&lt;ClassLoader, Class&lt;?&gt;[], Class&lt;?&gt;&gt;
+    {
+        // 代理类的前缀
+        private static final String proxyClassNamePrefix = &quot;$Proxy&quot;;
+        // next number to use for generation of unique proxy class names
+        private static final AtomicLong nextUniqueNumber = new AtomicLong();
+        @Override
+        public Class&lt;?&gt; apply(ClassLoader loader, Class&lt;?&gt;[] interfaces) {
+
+            Map&lt;Class&lt;?&gt;, Boolean&gt; interfaceSet = new IdentityHashMap&lt;&gt;(interfaces.length);
+            for (Class&lt;?&gt; intf : interfaces) {
+                //验证类加载器是否将此接口的名称解析为相同的 Class 对象,简单点说就是这个接口是否可以被提供的类加载器加载。
+                Class&lt;?&gt; interfaceClass = null;
+                try {
+                    interfaceClass = Class.forName(intf.getName(), false, loader);
+                } catch (ClassNotFoundException e) {
+                }
+                if (interfaceClass != intf) {
+                    throw new IllegalArgumentException(
+                        intf + &quot; is not visible from class loader&quot;);
+                }
+                // 确认是否是个接口
+                if (!interfaceClass.isInterface()) {
+                    throw new IllegalArgumentException(
+                        interfaceClass.getName() + &quot; is not an interface&quot;);
+                }
+                //验证接口是否是重复的
+                if (interfaceSet.put(interfaceClass, Boolean.TRUE) != null) {
+                    throw new IllegalArgumentException(
+                        &quot;repeated interface: &quot; + interfaceClass.getName());
+                }
+            }
+            String proxyPkg = null;     // package to define proxy class in
+            int accessFlags = Modifier.PUBLIC | Modifier.FINAL;
+            // 看注释挺绕的，应该就是想设置一个包名
+            for (Class&lt;?&gt; intf : interfaces) {
+                int flags = intf.getModifiers();
+                if (!Modifier.isPublic(flags)) {
+                    accessFlags = Modifier.FINAL;
+                    String name = intf.getName();
+                    int n = name.lastIndexOf('.');
+                    String pkg = ((n == -1) ? &quot;&quot; : name.substring(0, n + 1));
+                    if (proxyPkg == null) {
+                        proxyPkg = pkg;
+                    } else if (!pkg.equals(proxyPkg)) {
+                        throw new IllegalArgumentException(
+                            &quot;non-public interfaces from different packages&quot;);
+                    }
+                }
+            }
+            if (proxyPkg == null) {
+                // if no non-public proxy interfaces, use com.sun.proxy package
+                proxyPkg = ReflectUtil.PROXY_PACKAGE + &quot;.&quot;;
+            }
+
+            // 设置代理类类名称
+            long num = nextUniqueNumber.getAndIncrement();
+            String proxyName = proxyPkg + proxyClassNamePrefix + num;
+
+            //生成代理类
+            byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
+                proxyName, interfaces, accessFlags);
+            try {
+                return defineClass0(loader, proxyName,
+                                    proxyClassFile, 0, proxyClassFile.length);
+            } catch (ClassFormatError e) {
+                throw new IllegalArgumentException(e.toString());
+            }
+        }
+    }
+</code></pre><p>通过上面我们可以很容易的了解代理类生成的过程了，<code>ProxyGenerator.generateProxyClass</code>应该是最重要的了，但是没必要深究了，无非就是生成方法，生成构造器等。另外上面提到在junit中无法通过设置变量生成代理类class文件，我们可以直接调用<code>ProxyGenerator.generateProxyClass</code>手动生成。</p><h3 id=cglib动态代理分析>Cglib动态代理分析</h3><h4 id=代理方法执行分析-1>代理方法执行分析</h4><blockquote><p>同jdk动态代理一样，首先要打开cglib的debug模式才能看见代理类</p></blockquote><pre><code class=language-java>        //  设置Cglib动态代理调试模式
+        System.setProperty(DebuggingClassWriter.DEBUG_LOCATION_PROPERTY, &quot;target&quot;);
+</code></pre><p>写一个最简单的使用方式：</p><pre><code class=language-java>Enhancer enhancer = new Enhancer();
+enhancer.setSuperclass(HelloWorldImpl.class);
+enhancer.setCallback((MethodInterceptor) (obj, method, args, methodProxy) -&gt; {
+    log.info(&quot;调用方法开始：{}&quot;, method.getName());
+    Object result = methodProxy.invokeSuper(obj, args);
+    log.info(&quot;调用结果:{}&quot;, result);
+    log.info(&quot;调用方法结束：{}&quot;, method.getName());
+    return result;
+});
+HelloWorld helloWorld = (HelloWorld) enhancer.create();
+log.info(helloWorld.sayHello(&quot;cglib&quot;));
+</code></pre><p>运行之后在target中看一下生成的代理类：</p><pre><code>├───com
+│   └───example
+│       └───cglib
+│           └───proxy
+│               └───impl
+│                       HelloWorldImpl$$EnhancerByCGLIB$$722f73d4$$FastClassByCGLIB$$5d1e80b1.class
+│                       HelloWorldImpl$$EnhancerByCGLIB$$722f73d4.class
+│                       HelloWorldImpl$$FastClassByCGLIB$$d5c59250.class
+</code></pre><p>可以看见生成了三个类，下面来看一下这三个类都有什么吧，ヾ(≧▽≦*)o</p><ol><li><p><code>HelloWorldImpl$$EnhancerByCGLIB$$722f73d4</code></p><pre><code class=language-java>public class HelloWorldImpl$$EnhancerByCGLIB$$722f73d4 extends HelloWorldImpl implements Factory {
+    //省略大部分代码
+    final String CGLIB$sayHello$1(String var1) {}
+
+    public final String sayHello(String var1) {}
+    //省略大部分代码
+}
+</code></pre><p>这个类类似于jdk动态代理生成的那个代理类，之后我们来看他是怎么执行的。</p></li><li><p><code>HelloWorldImpl$$EnhancerByCGLIB$$722f73d4$$FastClassByCGLIB$$5d1e80b1.class</code></p><pre><code class=language-java>public class HelloWorldImpl$$EnhancerByCGLIB$$722f73d4$$FastClassByCGLIB$$5d1e80b1 extends FastClass {
+    public HelloWorldImpl$$EnhancerByCGLIB$$722f73d4$$FastClassByCGLIB$$5d1e80b1(Class var1) {}
+
+    public int getIndex(Signature var1) {}
+
+    public int getIndex(String var1, Class[] var2) {}
+
+    public int getIndex(Class[] var1) {}
+
+    public Object invoke(int var1, Object var2, Object[] var3) throws InvocationTargetException {}
+
+    public Object newInstance(int var1, Object[] var2) throws InvocationTargetException {}
+
+    public int getMaxIndex() {}
+}
+</code></pre><p>这个类里最重要的就是<code>getIndex</code>方法和<code>invoke</code>方法。</p></li><li><p><code>HelloWorldImpl$$FastClassByCGLIB$$d5c59250.class</code></p><pre><code class=language-java>public class HelloWorldImpl$$FastClassByCGLIB$$d5c59250 extends FastClass {
+    public HelloWorldImpl$$FastClassByCGLIB$$d5c59250(Class var1) {}
+
+    public int getIndex(Signature var1) {}
+
+    public int getIndex(String var1, Class[] var2) {}
+
+    public int getIndex(Class[] var1) {}
+
+    public Object invoke(int var1, Object var2, Object[] var3) throws InvocationTargetException {}
+
+    public Object newInstance(int var1, Object[] var2) throws InvocationTargetException {}
+
+    public int getMaxIndex() {}
+}
+</code></pre><p>和上一个类相似，但是有本质区别。</p></li></ol><blockquote><p>下面将对上面的三个类进行分析</p></blockquote><p>先不分析<code>enhancer.create</code>方法，首先上面的例子会调用<code>HelloWorld.sayHello</code>方法，然后调用代理类的<code>sayHello</code>方法。</p><pre><code class=language-java>    public final String sayHello(String var1) {
+        MethodInterceptor var10000 = this.CGLIB$CALLBACK_0;
+        if (var10000 == null) {
+            CGLIB$BIND_CALLBACKS(this);
+            var10000 = this.CGLIB$CALLBACK_0;
+        }
+
+        return var10000 != null ? (String)var10000.intercept(this, CGLIB$sayHello$1$Method, new Object[]{var1}, CGLIB$sayHello$1$Proxy) : super.sayHello(var1);
+    }
+</code></pre><p>可以看见<code>sayHello</code>方法会去掉用上面设置的回调方法，然后就进入了我们自己写的<code>callBack</code>方法，<code>callback</code>方法的一个继承接口是<code>MethodInterceptor</code>。</p><pre><code class=language-java>public interface MethodInterceptor extends Callback
+{ 
+    public Object intercept(Object obj, java.lang.reflect.Method method, Object[] args,MethodProxy proxy) throws Throwable;
+}
+</code></pre><p>可以看见这个<code>intercept</code>方法有四个参数：</p><ul><li><code>obj</code>是代理类</li><li><code>method</code>是被代理类的方法</li><li><code>args</code>是方法传入的参数</li><li><code>proxy</code>是代理类的方法</li></ul><p>之后肯定是执行方法了，首先可以想到的是直接调用<code>method.invoke</code>方法，这个其实就是jdk动态代理执行方法的方式，使用反射执行，这样就没cglib的优势了。值得注意的是<code>invoke</code>的第一个参数不要直接传入参的<code>obj</code>,这样会造成死循环，至于为什么会这样后面会解释。</p><p>不使用<code>method.invoke</code>执行方法，那么只能使用<code>proxy</code>去执行方法了，问题又来了，这个<code>proxy</code>有两个方法<code>invoke</code>和<code>invokeSuper</code>方法，那么这两个方法有什么区别呢？</p><blockquote><p>首先来看<code>invokeSuper</code>。</p></blockquote><pre><code class=language-java>public Object invokeSuper(Object obj, Object[] args) throws Throwable {
+    try {
+        init();
+        FastClassInfo fci = fastClassInfo;
+        return fci.f2.invoke(fci.i2, obj, args);
+    } catch (InvocationTargetException e) {
+        throw e.getTargetException();
+    }
+}
+</code></pre><pre><code class=language-java>private void init(){
+    if (fastClassInfo == null)
+    {
+        synchronized (initLock)
+        {
+            if (fastClassInfo == null)
+            {
+                CreateInfo ci = createInfo;
+
+                FastClassInfo fci = new FastClassInfo();
+                fci.f1 = helper(ci, ci.c1);
+                fci.f2 = helper(ci, ci.c2);
+                fci.i1 = fci.f1.getIndex(sig1);
+                fci.i2 = fci.f2.getIndex(sig2);
+                fastClassInfo = fci;
+                createInfo = null;
+            }
+        }
+    }
+}
+
+public static MethodProxy create(Class c1, Class c2, String desc, String name1, String name2) {
+    MethodProxy proxy = new MethodProxy();
+    proxy.sig1 = new Signature(name1, desc);
+    proxy.sig2 = new Signature(name2, desc);
+    proxy.createInfo = new CreateInfo(c1, c2);
+    return proxy;
+}
+</code></pre><pre><code class=language-java>//HelloWorldImpl$$EnhancerByCGLIB$$722f73d4静态代码块
+static void CGLIB$STATICHOOK1() {
+    CGLIB$THREAD_CALLBACKS = new ThreadLocal();
+    CGLIB$emptyArgs = new Object[0];
+    CGLIB$sayHello$4$Method = var10000[4];
+    CGLIB$sayHello$4$Proxy = MethodProxy.create(var1, var0, &quot;(Ljava/lang/String;)Ljava/lang/String;&quot;, &quot;sayHello&quot;, &quot;CGLIB$sayHello$4&quot;);
+}
+</code></pre><p>可以看见<code>invokeSuper</code>首先调用了<code>init</code>方法，<code>init</code>方法需要一个<code>createInfo</code>这个<code>createInfo</code>方法是由<code>create</code>方法创建的，那么这个<code>create</code>是由什么调用的呢，通过debug可以看见是由我们的<code>HelloWorldImpl</code>代理类在静态代码块中调用的，可以看见这个代码块传递了方法参数，和代理类中的两个方法，查看这两个方法可以看出<code>sayHello</code>会调用<code>callback</code>而<code>CGLIB$sayHello$4</code>会调用被代理类的<code>sayHello</code>方法。</p><p>得到<code>ci</code>类之后之后会调用<code>helper</code>方法，这个方法主要就是生成两个<code>fastClass</code>类，通过<code>fastClass.getIndex</code>可以很快的得到执行的方法。而<code>f2</code>其实就是被代理类的执行方法，因此可以看出<code>fci.f2.invoke</code>其实执行的就是<code>CGLIB$sayHello$4</code>方法。从头到尾没有使用反射执行方法，简单的通过<code>super.sayHelloWorld</code>就完成了方法的执行。这也是cglib比jdk动态代理快的奥秘。</p><blockquote><p>下面我们look look<code>proxy.invoke</code>方法</p></blockquote><pre><code class=language-java>public Object invoke(Object obj, Object[] args) throws Throwable {
+    try {
+        init();
+        FastClassInfo fci = fastClassInfo;
+        return fci.f1.invoke(fci.i1, obj, args);
+    } catch (InvocationTargetException e) {
+        throw e.getTargetException();
+    } catch (IllegalArgumentException e) {
+        if (fastClassInfo.i1 &lt; 0)
+            throw new IllegalArgumentException(&quot;Protected method: &quot; + sig1);
+        throw e;
+    }
+}
+</code></pre><p>可以看见和<code>invokeSuper</code>几乎一样，只是最后调用的是<code>fci.f1.invoke</code>方法，在<code>invokeSuper</code>中我们传入的obj参数就是<code>MethodInterceptor#intercept</code>所传给我们的<code>obj</code>，如果在<code>invoke</code>也传入这个<code>obj</code>的话，那么将会进入死循环，为什么会出现死循环呢，从上面的<code>init</code>方法中我们可以得出<code>f1</code>其实执行的是<code>sayHello</code>方法，而代理对象的<code>sayHello</code>方法会接着执行<code>MethodInterceptor#intercept</code>方法，然后<code>MethodInterceptor#intercept</code>会接着执行<code>invoke</code>方法，从而陷入死循环，解决这个问题很简单，就是自己<code>new</code>一个<code>HelloWorldImpl</code>对象传入，这样执行的就是你传入的这个对象的<code>sayHello</code>方法而不是代理对象的。上面提到的如果你执行<code>method.invoke</code>传入参数的<code>obj</code>会陷入死循环是一个道理，因为执行的是代理类的<code>sayHello</code>，而代理类的<code>sayHello</code>会接着执行<code>callback</code>。</p><h4 id=生成代理类分析-1>生成代理类分析</h4><p>下面我们来see see <code>enhancer.create</code>干了什么。</p><pre><code class=language-java>public Object create() {
+    classOnly = false;
+    argumentTypes = null;
+    return createHelper();
+}
+
+private Object createHelper() {
+    preValidate();
+    // 这个key其实就是个上下文，后面可以根据这个key创建代理类
+    Object key = KEY_FACTORY.newInstance((superclass != null) ? superclass.getName() : null,
+            ReflectUtils.getNames(interfaces),
+            filter == ALL_ZERO ? null : new WeakCacheKey&lt;CallbackFilter&gt;(filter),
+            callbackTypes,
+            useFactory,
+            interceptDuringConstruction,
+            serialVersionUID);
+    this.currentKey = key;
+    Object result = super.create(key);
+    return result;
+}
+</code></pre><pre><code class=language-java>protected Object create(Object key) {
+    ...
+    this.key = key;
+    Object obj = data.get(this, getUseCache());
+    if (obj instanceof Class) {
+        return firstInstance((Class) obj);
+    }
+    return nextInstance(obj);
+    ...
+}
+</code></pre><p><code>data.get</code>将会生成<code>class</code>文件</p><pre><code class=language-java>public V get(K key) {
+    final KK cacheKey = keyMapper.apply(key);
+    Object v = map.get(cacheKey);
+    // 从map里找，如果有的话就不会构建class文件了
+    if (v != null &amp;&amp; !(v instanceof FutureTask)) {
+        return (V) v;
+    }
+
+    return createEntry(key, cacheKey, v);
+}
+
+protected V createEntry(final K key, KK cacheKey, Object v) {
+    FutureTask&lt;V&gt; task;
+    boolean creator = false;
+    if (v != null) {
+        //如果有别的线程已经执行了，那么就不创建新线程了
+        task = (FutureTask&lt;V&gt;) v;
+    } else {
+        task = new FutureTask&lt;V&gt;(new Callable&lt;V&gt;() {
+            public V call() throws Exception {
+                return loader.apply(key);
+            }
+        });
+        Object prevTask = map.putIfAbsent(cacheKey, task);
+        // 查看map中是否已经存在任务了
+        if (prevTask == null) {   
+            creator = true;
+            task.run();
+        } else if (prevTask instanceof FutureTask) {
+            task = (FutureTask&lt;V&gt;) prevTask;
+        } else {
+            return (V) prevTask;
+        }
+    }
+
+    V result;
+    try {
+        result = task.get();
+    } catch (InterruptedException e) {
+        throw new IllegalStateException(&quot;Interrupted while loading cache item&quot;, e);
+    } catch (ExecutionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof RuntimeException) {
+            throw ((RuntimeException) cause);
+        }
+        throw new IllegalStateException(&quot;Unable to load cache item&quot;, cause);
+    }
+    if (creator) {
+        map.put(cacheKey, result);
+    }
+    return result;
+}
+
+</code></pre><p><code>loader.apply</code>将会生成代理,调用<code>net.sf.cglib.proxy.Enhancer#generateClass</code>构造<code>org.objectweb.asm.ClassVisitor</code>，之后生成代理类，里头的逻辑比较多，就不一一分析了，主要是使用了asm库构造新类。</p><h2 id=cglib的使用>Cglib的使用</h2><pre><code class=language-java>@DisplayName(&quot;不同的回调实现&quot;)
+@Nested
+@Tag(&quot;cglib&quot;)
+class DifferentCallback {
+
+    @Test
+    @DisplayName(&quot;为每个方法设置回调&quot;)
+    public void testMultiCallBack() {
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(HelloWorldImpl.class);
+        enhancer.setCallbackFilter(new CglibFilter());
+        enhancer.setCallbacks(new MethodInterceptor[]{new AuthInterceptor(), new NormalInterceptor()});
+        HelloWorld helloWorld = (HelloWorld) enhancer.create();
+        log.info(&quot;最终返回结果：{}&quot;, helloWorld.sayHello(&quot;cglib&quot;));
+        log.info(&quot;最终返回结果：{}&quot;, helloWorld.sayGoodBye(&quot;cglib&quot;));
+    }
+
+    @Test
+    @DisplayName(&quot;FixedValue&quot;)
+    public void testFixedValue() {
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(HelloWorldImpl.class);
+        enhancer.setCallback((FixedValue) () -&gt; &quot;fixedValue&quot;);
+        HelloWorld helloWorld = (HelloWorld) enhancer.create();
+        log.info(&quot;最终返回结果：{}&quot;, helloWorld.sayHello(&quot;cglib&quot;));
+    }
+
+    @Test
+    @DisplayName(&quot;NoOp&quot;)
+    public void testNoOp() {
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(HelloWorldImpl.class);
+        enhancer.setCallback(NoOp.INSTANCE);
+        HelloWorld helloWorld = (HelloWorld) enhancer.create();
+        log.info(&quot;最终返回结果：{}&quot;, helloWorld.sayHello(&quot;cglib&quot;));
+    }
+
+    @Test
+    @DisplayName(&quot;LazyLoader&quot;)
+    public void testLazyLoader() {
+        HelloWorldImpl helloWorld = new HelloWorldImpl();
+        HelloWorldImpl helloWorldLazy = helloWorld.lazyLoad();
+        log.info(&quot;开始调用getField方法....&quot;);
+        log.info(&quot;lazyLoad:{}&quot;, helloWorldLazy.getField());
+        log.info(&quot;lazyLoad:{}&quot;, helloWorldLazy.getField());
+    }
+
+
+    @Test
+    @DisplayName(&quot;Dispatcher&quot;)
+    public void testDispatcher() {
+        HelloWorldImpl helloWorld = new HelloWorldImpl();
+        HelloWorldImpl helloWorldDispatcher = helloWorld.dispatcher();
+        log.info(&quot;开始调用getField方法....&quot;);
+        log.info(&quot;dispatcher:{}&quot;, helloWorldDispatcher.getField());
+        log.info(&quot;dispatcher:{}&quot;, helloWorldDispatcher.getField());
+    }
+
+    @Test
+    @DisplayName(&quot;ProxyRefDispatcher&quot;)
+    public void testLazyLoader2() {
+        HelloWorldImpl helloWorld = new HelloWorldImpl();
+        HelloWorldImpl helloWorldProxyRefDispatcher = helloWorld.proxyRefDispatcher();
+        log.info(&quot;开始调用getField方法....&quot;);
+        log.info(&quot;lazyLoad:{}&quot;, helloWorldProxyRefDispatcher.getField());
+        log.info(&quot;lazyLoad:{}&quot;, helloWorldProxyRefDispatcher.getField());
+    }
+}
+</code></pre><p>以上代码<a href=git@github.com:/youtiaoguagua/cglib.git>获取</a>。</p></div><div class=my-4><a href=../../tags/cglib/ class="inline-block bg-tertiary-bg text-sm rounded px-3 py-1 my-1 mr-2 hover:text-eureka">#cglib</a></div><div class=py-2><div class="flex flex-col md:flex-row items-center my-8"><a href=../../authors/youtiaoguagua/ class="w-24 h-24 md:mr-4"><img src=../../images/avator.jpg class="w-full bg-primary-bg rounded-full" alt=Avatar></a><div class="w-full md:w-auto mt-4 md:mt-0"><a href=../../authors/youtiaoguagua/ class="block font-bold text-lg pb-1 mb-2 border-b">YoutiaoGuagua</a>
+<span class="block pb-2">遇事不决，可问春风，春风不语，遵循己心。</span>
+<a href=mailto:youtiaoguagua@gmail.com class=mr-1><i class="fas fa-envelope"></i></a>
+<a href=https://t.me/youtiaoguagua class=mr-1><i class="fab fa-telegram"></i></a>
+<a href=https://github.com/youtiaoguagua class=mr-1><i class="fab fa-github"></i></a></div></div></div><div class="flex flex-col md:flex-row md:justify-between -mx-2 mt-4 px-2 pt-4 border-t"><div></div><div class="md:text-right mt-4 md:mt-0"><span class="block font-bold">下一页</span>
+<a href=../../posts/helloworld/ class=block>Hello World</a></div></div><script id=utterances src=https://utteranc.es/client.js issue-term=pathname repo=youtiaoguagua/blog-comment theme=preferred-color-scheme crossorigin=anonymous async></script><script>storageColorScheme=="Light"?document.getElementById('utterances').setAttribute('theme','github-light'):storageColorScheme=="Dark"&&document.getElementById('utterances').setAttribute('theme','github-dark')</script></div><div class=col-span-2><div class="sticky top-16 z-10 hidden lg:block px-6 py-4 bg-primary-bg"><span class="text-lg font-semibold">本页内容</span></div><div class="sticky-toc hidden lg:block px-6 pb-6"><nav id=TableOfContents><ul><li><a href=#环境>环境</a></li><li><a href=#原理分析>原理分析</a><ul><li><a href=#jdk动态代理>jdk动态代理</a><ul><li><a href=#代理方法执行分析>代理方法执行分析</a></li><li><a href=#生成代理类分析>生成代理类分析</a></li></ul></li><li><a href=#cglib动态代理分析>Cglib动态代理分析</a><ul><li><a href=#代理方法执行分析-1>代理方法执行分析</a></li><li><a href=#生成代理类分析-1>生成代理类分析</a></li></ul></li></ul></li><li><a href=#cglib的使用>Cglib的使用</a></li></ul></nav></div><script>window.addEventListener('DOMContentLoaded',()=>{enableStickyToc()})</script></div></div><script>document.addEventListener('DOMContentLoaded',()=>{hljs.initHighlightingOnLoad()})</script></div></div></main><footer class=pl-scrollbar><div class="w-full max-w-screen-xl mx-auto"><div class="text-center p-6 pin-b"><p class="text-sm text-tertiary-text">&copy; 2021 <a href=https://youtiaoguagua.gaobili.cn/>C. YoutiaoGuagua</a>
+&#183; Powered by the <a href=https://github.com/wangchucheng/hugo-eureka class=hover:text-eureka>Eureka</a> theme for <a href=https://gohugo.io class=hover:text-eureka>Hugo</a></p></div></div></footer></body></html>
